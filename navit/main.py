@@ -1,4 +1,3 @@
-```python
 from functools import partial  # 导入partial函数，用于固定函数的部分参数，生成新的函数
 from typing import List, Union  # 导入类型注解
 
