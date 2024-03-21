@@ -21,4 +21,6 @@ images = [
 ]
 
 preds = v(images)
+print(images)
+print('Predictions:')
 print(preds)

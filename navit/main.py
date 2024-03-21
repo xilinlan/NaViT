@@ -192,7 +192,7 @@ class NaViT(nn.Module):  # 定义NaViT类，继承自nn.Module
         dim,  # 维度
         depth,  # 深度
         heads,  # 头数
-        mlp_dim,  # MLP维度
+        mlp_dim,  # MLP维度 (FeedForward层的维度) 默认为2048 MLP是多层感知机
         channels = 3,  # 通道数，默认为3
         dim_head = 64,  # 头维度，默认为64
         dropout = 0.,  # dropout率，默认为0
