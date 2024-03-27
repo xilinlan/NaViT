@@ -268,7 +268,7 @@ class NaViT(nn.Module):  # 定义NaViT类，继承自nn.Module
     def forward(
         self,
         batched_images: Union[List[Tensor], List[List[Tensor]]], #assume different resolution images already grouped correctly # 批量图像
-        group_images = False, # 是否对图像进行分组，默认为False
+        group_images = True, # 是否对图像进行分组，默认为False
         group_max_seq_len = 2048 # 最大序列长度，默认为2048
     ):
         p, c, device, has_token_dropout = self.patch_size, self.channels, self.device, exists(self.calc_token_dropout) # 获取块尺寸、通道数、设备和是否有token dropout
@@ -296,12 +296,13 @@ class NaViT(nn.Module):  # 定义NaViT类，继承自nn.Module
         for images in batched_images:
             num_images.append(len(images)) # 记录图像数量
 
+
             sequences = [] # 初始化sequences列表
             positions = [] # 初始化positions列表
             image_ids = torch.empty((0,), device = device, dtype = torch.long)  # 初始化image_ids张量
 
             for image_id, image in enumerate(images): # 遍历图像列表
-                assert image.ndim ==3 and image.shape[0] == c # 断言图像的维度和通道数
+                assert image.ndim == 3 and image.shape[0] == c # 断言图像的维度和通道数
                 image_dims = image.shape[-2:] # 获取图像的维度
                 assert all([divisible_by(dim, p) for dim in image_dims]), f'height and width {image_dims} of images must be divisible by patch size {p}' # 断言图像的高度和宽度能被块尺寸整除
                 # 计算块的高度和宽度

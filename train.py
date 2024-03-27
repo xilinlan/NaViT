@@ -176,6 +176,7 @@ class DistillationLoss(torch.nn.Module):
 
 # The first arg parser parses out only the --config argument, this argument is used to
 # load a yaml file containing key-values that override the defaults for the main parser below
+#
 config_parser = parser = argparse.ArgumentParser(
     description="Training Config", add_help=False
 )
@@ -192,7 +193,7 @@ parser.add_argument(
 parser = argparse.ArgumentParser(description="PyTorch ImageNet Training")
 
 # Dataset parameters
-parser.add_argument("data_dir", metavar="DIR", help="path to dataset")
+parser.add_argument("--data_dir", metavar="DIR", help="path to dataset")
 parser.add_argument(
     "--dataset",
     "-d",
@@ -999,16 +1000,26 @@ def main():
     random_seed(args.seed, args.rank)
 
     model = NaViT(
-        img_size=args.img_size,
-        patch_size=args.patch_size,
-        in_chans=args.in_chans,
-        num_classes=args.num_classes,
-        embed_dim=args.embed_dim,
-        depth=args.depth,
-        num_heads=args.num_heads,
-        mlp_ratio=args.mlp_ratio,
-        qkv_bias=args.qkv_bias,
-        qk_scale=args.qk_scale,
+        image_size = 256,
+        patch_size = 32,
+        num_classes = 200,
+        dim = 1024,
+        depth = 6,
+        heads = 16,
+        mlp_dim = 2048,
+        dropout = 0.1,
+        emb_dropout = 0.1,
+        token_dropout_prob = 0.1
+        # img_size=args.img_size,
+        # patch_size=args.patch_size,
+        # # in_chans=args.in_chans,
+        # num_classes=args.num_classes,
+        # embed_dim=args.embed_dim,
+        # depth=args.depth,
+        # num_heads=args.num_heads,
+        # mlp_ratio=args.mlp_ratio,
+        # qkv_bias=args.qkv_bias,
+        # qk_scale=args.qk_scale,
     )
 
     
