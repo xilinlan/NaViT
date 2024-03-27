@@ -18,7 +18,7 @@ images = [
     [torch.randn(3, 256, 256), torch.randn(3, 128, 128)],
     [torch.randn(3, 128, 256), torch.randn(3, 256, 128)],
     [torch.randn(3, 64, 256)]
-]
+] # list of images, each image can have multiple resolutions (different scales) 意思是一个图像序列里面有多个图像的有多个分辨率
 
 preds = v(images)
 print(images)

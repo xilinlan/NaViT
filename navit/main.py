@@ -142,10 +142,23 @@ class Attention(nn.Module):  # 定义Attention类，实现注意力机制
 
         dots = torch.matmul(q, k.transpose(-1, -2)) # 计算点积
 
-        if exists(mask): # 如果存在mask，则使用mask
-            mask = rearrange(mask, 'b j -> b 1 1 j') # 重排mask的维度
+        '''
+        mask（键填充掩码）:
+        这个掩码通常用于处理序列中的填充元素（padding tokens）。在批处理（batching）时，不同的序列可能有不同的长度，因此较短的序列会用特定的值（通常是0）进行填充以匹配批次中最长序列的长度。这些填充值对于模型的学习和决策是不重要的，因此需要通过mask来确保它们不会影响自注意力的计算。
+        在代码中，mask被用来确保在计算自注意力得分时，填充的位置不会对结果产生影响。这是通过将mask应用到点积得分上实现的，填充位置的得分会被设置为一个非常大的负数，这样在应用Softmax函数进行归一化时，这些位置的权重会接近于0。
+        '''
+        if exists(mask): # 如果存在mask，则使用mask（键填充掩码）
+            # 重排mask的维度 从'b j'重排为'b 1 1 j'
+            # b表示批次维度，j表示序列中的元素维度
+            # 1是一个新引入的维度，大小为1
+            mask = rearrange(mask, 'b j -> b 1 1 j')
             dots = dots.masked_fill(~mask, -torch.finfo(dots.dtype).max) # 使用mask填充
 
+        '''
+        attn_mask（注意力掩码）:
+        attn_mask用于控制自注意力机制中的信息流动，特别是在处理具有特定结构或需要防止信息泄露的场景中。例如，在序列生成任务中，模型在生成当前位置的输出时，不应该使用未来位置的信息。attn_mask通过掩盖这些未来位置来防止信息泄露。
+        在代码中，attn_mask被用于在计算自注意力得分之后，进一步调整得分，以确保模型在计算当前位置的注意力时，不会考虑不应该考虑的位置。这通常涉及到对得分矩阵的某些元素设置为负无穷，从而在Softmax应用后，这些位置的权重变为0。
+        '''
         if exists(attn_mask): # 如果存在attn_mask，则使用attn_mask
             dots = dots.masked_fill(~attn_mask, -torch.finfo(dots.dtype).max) # 使用attn_mask填充
 
@@ -181,7 +194,6 @@ class Transformer(nn.Module):
 
         return self.norm(x) # 层归一化
 
-# 从第114行开始添加中文注释
 class NaViT(nn.Module):  # 定义NaViT类，继承自nn.Module
     def __init__(
         self,
