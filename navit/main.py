@@ -285,9 +285,7 @@ class NaViT(nn.Module):  # 定义NaViT类，继承自nn.Module
                 calc_token_dropout = self.calc_token_dropout, # 计算token的dropout概率
                 max_seq_len = group_max_seq_len # 最大序列长度
             )
-
         #process images into variable lengthed sequences with attention mask
-
         num_images = [] # 初始化num_images列表
         batched_sequences = [] # 初始化batched_sequences列表
         batched_positions = [] # 初始化batched_positions列表
@@ -295,8 +293,6 @@ class NaViT(nn.Module):  # 定义NaViT类，继承自nn.Module
 
         for images in batched_images:
             num_images.append(len(images)) # 记录图像数量
-
-
             sequences = [] # 初始化sequences列表
             positions = [] # 初始化positions列表
             image_ids = torch.empty((0,), device = device, dtype = torch.long)  # 初始化image_ids张量

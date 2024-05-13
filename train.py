@@ -1,4 +1,3 @@
-
 import argparse
 import glob
 import logging
@@ -14,6 +13,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.utils
 import yaml
+import torchvision.datasets as datasets
+import torchvision.transforms as transforms
+
 from timm.data import (
     AugMixDataset,
     FastCollateMixup,
@@ -65,9 +67,6 @@ except ImportError:
 torch.backends.cudnn.benchmark = True
 _logger = logging.getLogger("train")
 
-
-
-
 #######
 #
 # For licensing see accompanying LICENSE file.
@@ -110,6 +109,7 @@ class CosineWDSchedule:
             if param_group["weight_decay"] > 0.0:
                 param_group["weight_decay"] = wd
 
+
 class DistillationLoss(torch.nn.Module):
     """
     This module wraps a standard criterion and adds an extra knowledge distillation loss by
@@ -117,12 +117,12 @@ class DistillationLoss(torch.nn.Module):
     """
 
     def __init__(
-        self,
-        base_criterion: torch.nn.Module,
-        teacher_model: torch.nn.Module,
-        distillation_type: str,
-        alpha: float,
-        tau: float,
+            self,
+            base_criterion: torch.nn.Module,
+            teacher_model: torch.nn.Module,
+            distillation_type: str,
+            alpha: float,
+            tau: float,
     ):
         super().__init__()
         self.base_criterion = base_criterion
@@ -152,17 +152,17 @@ class DistillationLoss(torch.nn.Module):
             # taken from https://github.com/peterliht/knowledge-distillation-pytorch/blob/master/model/net.py#L100
             # with slight modifications
             distillation_loss = (
-                F.kl_div(
-                    F.log_softmax(outputs / T, dim=1),
-                    # We provide the teacher's targets in log probability because we use log_target=True
-                    # (as recommended in pytorch https://github.com/pytorch/pytorch/blob/9324181d0ac7b4f7949a574dbc3e8be30abe7041/torch/nn/functional.py#L2719)
-                    # but it is possible to give just the probabilities and set log_target=False. In our experiments we tried both.
-                    F.log_softmax(teacher_outputs / T, dim=1),
-                    reduction="sum",
-                    log_target=True,
-                )
-                * (T * T)
-                / outputs.numel()
+                    F.kl_div(
+                        F.log_softmax(outputs / T, dim=1),
+                        # We provide the teacher's targets in log probability because we use log_target=True
+                        # (as recommended in pytorch https://github.com/pytorch/pytorch/blob/9324181d0ac7b4f7949a574dbc3e8be30abe7041/torch/nn/functional.py#L2719)
+                        # but it is possible to give just the probabilities and set log_target=False. In our experiments we tried both.
+                        F.log_softmax(teacher_outputs / T, dim=1),
+                        reduction="sum",
+                        log_target=True,
+                    )
+                    * (T * T)
+                    / outputs.numel()
             )
             # We divide by outputs_kd.numel() to have the legacy PyTorch behavior.
             # But we also experiments output_kd.size(0)
@@ -172,7 +172,7 @@ class DistillationLoss(torch.nn.Module):
 
         loss = base_loss * (1 - self.alpha) + distillation_loss * self.alpha
         return loss
-    
+
 
 # The first arg parser parses out only the --config argument, this argument is used to
 # load a yaml file containing key-values that override the defaults for the main parser below
@@ -189,7 +189,6 @@ parser.add_argument(
     help="YAML config file specifying default arguments",
 )
 
-
 parser = argparse.ArgumentParser(description="PyTorch ImageNet Training")
 
 # Dataset parameters
@@ -202,25 +201,25 @@ parser.add_argument(
     help="dataset type (default: ImageFolder/ImageTar if empty)",
 )
 parser.add_argument(
-    "--train-split",
+    "--train_split",
     metavar="NAME",
     default="train",
     help="dataset train split (default: train)",
 )
 parser.add_argument(
-    "--val-split",
+    "--val_split",
     metavar="NAME",
     default="validation",
     help="dataset validation split (default: validation)",
 )
 parser.add_argument(
-    "--dataset-download",
+    "--dataset_download",
     action="store_true",
     default=False,
     help="Allow download of dataset for torch/ and tfds/ datasets that support it.",
 )
 parser.add_argument(
-    "--class-map",
+    "--class_map",
     default="",
     type=str,
     metavar="FILENAME",
@@ -262,7 +261,7 @@ parser.add_argument(
     help="prevent resume of optimizer state when resuming model",
 )
 parser.add_argument(
-    "--num-classes",
+    "--num_classes",
     type=int,
     default=None,
     metavar="N",
@@ -276,14 +275,14 @@ parser.add_argument(
     help="Global pool type, one of (fast, avg, max, avgmax, avgmaxc). Model default if None.",
 )
 parser.add_argument(
-    "--img-size",
+    "--img_patch_size",
     type=int,
     default=None,
     metavar="N",
     help="Image patch size (default: None => model default)",
 )
 parser.add_argument(
-    "--input-size",
+    "--input_size",
     default=None,
     nargs=3,
     type=int,
@@ -291,7 +290,7 @@ parser.add_argument(
     help="Input all image dimensions (d h w, e.g. --input-size 3 224 224), uses model default if empty",
 )
 parser.add_argument(
-    "--crop-pct",
+    "--crop_pct",
     default=None,
     type=float,
     metavar="N",
@@ -322,7 +321,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "-b",
-    "--batch-size",
+    "--batch_size",
     type=int,
     default=128,
     metavar="N",
@@ -390,7 +389,6 @@ parser.add_argument(
     help='Weight decay scheduler. One of ("cosine", "none")',
 )
 
-
 # Learning rate schedule parameters
 parser.add_argument(
     "--sched",
@@ -400,7 +398,7 @@ parser.add_argument(
     help='LR scheduler (default: "step"',
 )
 parser.add_argument(
-    "--lr", type=float, default=1e-3, metavar="LR", help="learning rate (default: 1e-3)"
+    "--lr", type=float, default=9e-3, metavar="LR", help="learning rate (default: 1e-3)"
 )
 parser.add_argument(
     "--lr-noise",
@@ -454,7 +452,7 @@ parser.add_argument(
 parser.add_argument(
     "--warmup-lr",
     type=float,
-    default=1e-6,
+    default=1e-3,
     metavar="LR",
     help="warmup learning rate (default: 1e-6)",
 )
@@ -534,7 +532,7 @@ parser.add_argument(
     "--scale",
     type=float,
     nargs="+",
-    default=[0.08, 1.0],
+    default=[1.0, 1.0],
     metavar="PCT",
     help="Random resize scale (default: 0.08 1.0)",
 )
@@ -547,15 +545,15 @@ parser.add_argument(
     help="Random resize aspect ratio (default: 0.75 1.33)",
 )
 parser.add_argument(
-    "--hflip", type=float, default=0.5, help="Horizontal flip training aug probability"
+    "--hflip", type=float, default=0, help="Horizontal flip training aug probability"
 )
 parser.add_argument(
     "--vflip", type=float, default=0.0, help="Vertical flip training aug probability"
 )
 parser.add_argument(
-    "--color-jitter",
+    "--color_jitter",
     type=float,
-    default=0.4,
+    default=0,
     metavar="PCT",
     help="Color jitter factor (default: 0.4)",
 )
@@ -567,13 +565,13 @@ parser.add_argument(
     help='Use AutoAugment policy. "v0" or "original". (default: rand-m9-mstd0.5-inc1)',
 ),
 parser.add_argument(
-    "--aug-repeats",
+    "--aug_repeats",
     type=int,
     default=0,
     help="Number of augmentation repetitions (distributed training only) (default: 0)",
 )
 parser.add_argument(
-    "--aug-splits",
+    "--aug_splits",
     type=int,
     default=0,
     help="Number of augmentation splits (default: 0, valid: 0 or >=2)",
@@ -599,7 +597,7 @@ parser.add_argument(
 parser.add_argument(
     "--reprob",
     type=float,
-    default=0.25,
+    default=0,
     metavar="PCT",
     help="Random erase prob (default: 0.25)",
 )
@@ -607,7 +605,7 @@ parser.add_argument(
     "--remode", type=str, default="pixel", help='Random erase mode (default: "pixel")'
 )
 parser.add_argument(
-    "--recount", type=int, default=1, help="Random erase count (default: 1)"
+    "--recount", type=int, default=0, help="Random erase count (default: 1)"
 )
 parser.add_argument(
     "--resplit",
@@ -751,20 +749,20 @@ parser.add_argument(
 
 # Distillation parameters
 parser.add_argument(
-    "--teacher-model",
+    "--teacher_model",
     default="regnety_160",
     type=str,
     metavar="MODEL",
     help='Name of teacher model to train (default: "regnety_160"',
 )
 parser.add_argument(
-    "--teacher-path",
+    "--teacher_path",
     type=str,
     default="https://dl.fbaipublicfiles.com/deit/regnety_160-a5fe301d.pth",
     help="Location of teacher model",
 )
 parser.add_argument(
-    "--distillation-type",
+    "--distillation_type",
     default="none",
     choices=["none", "soft", "hard"],
     type=str,
@@ -826,9 +824,9 @@ parser.add_argument(
     help="how many training processes to use (default: 8)",
 )
 parser.add_argument(
-    "--save-images",
+    "--save_images",
     action="store_true",
-    default=False,
+    default=True,
     help="save images of input bathes every log interval for debugging",
 )
 parser.add_argument(
@@ -888,7 +886,7 @@ parser.add_argument(
     help="name of train experiment, name of sub-folder for output",
 )
 parser.add_argument(
-    "--eval-metric",
+    "--eval_metric",
     default="top1",
     type=str,
     metavar="EVAL_METRIC",
@@ -1000,16 +998,16 @@ def main():
     random_seed(args.seed, args.rank)
 
     model = NaViT(
-        image_size = 256,
-        patch_size = 32,
-        num_classes = 200,
-        dim = 1024,
-        depth = 6,
-        heads = 16,
-        mlp_dim = 2048,
-        dropout = 0.1,
-        emb_dropout = 0.1,
-        token_dropout_prob = 0.1
+        image_size=224,
+        patch_size=args.img_patch_size,
+        num_classes=args.num_classes,
+        dim=128,
+        depth=6,
+        heads=16,
+        mlp_dim=256,
+        dropout=0.1,
+        emb_dropout=0.1,
+        token_dropout_prob=0.25
         # img_size=args.img_size,
         # patch_size=args.patch_size,
         # # in_chans=args.in_chans,
@@ -1022,7 +1020,6 @@ def main():
         # qk_scale=args.qk_scale,
     )
 
-    
     if args.num_classes is None:
         assert hasattr(
             model, "num_classes"
@@ -1444,22 +1441,21 @@ def main():
 
 
 def train_one_epoch(
-    epoch,
-    model,
-    loader,
-    optimizer,
-    loss_fn,
-    args,
-    lr_scheduler=None,
-    saver=None,
-    output_dir=None,
-    amp_autocast=suppress,
-    loss_scaler=None,
-    model_ema=None,
-    mixup_fn=None,
-    wd_scheduler=None,
+        epoch,
+        model,
+        loader,
+        optimizer,
+        loss_fn,
+        args,
+        lr_scheduler=None,
+        saver=None,
+        output_dir=None,
+        amp_autocast=suppress,
+        loss_scaler=None,
+        model_ema=None,
+        mixup_fn=None,
+        wd_scheduler=None,
 ):
-
     if args.mixup_off_epoch and epoch >= args.mixup_off_epoch:
         if args.prefetcher and loader.mixup_enabled:
             loader.mixup_enabled = False
@@ -1479,6 +1475,12 @@ def train_one_epoch(
     for batch_idx, (input, target) in enumerate(loader):
         last_batch = batch_idx == last_idx
         data_time_m.update(time.time() - end)
+        # Convert probability distribution to one-hot encoding
+        indices = torch.argmax(target, dim=1)
+        one_hot_target = torch.zeros_like(target)
+        one_hot_target.scatter_(1, indices.unsqueeze(1), 1)
+        # print(one_hot_target)
+        print('target:', target)
         if not args.prefetcher:
             input, target = input.cuda(), target.cuda()
             if mixup_fn is not None:
@@ -1488,8 +1490,25 @@ def train_one_epoch(
 
         with amp_autocast():
             output = model(input)
-            loss = loss_fn(input, output, target)
-
+            loss = loss_fn(input, output, one_hot_target)
+        # 定义一个空列表来存储类别名称
+        # class_names = []
+        # # 打开文件，并逐行读取类别名称
+        # with open('dataset/cifar-100/labels.txt', 'r') as file:
+        #     for line in file:
+        #         # 移除每行末尾的换行符，并去除可能的空白字符
+        #         category_name = line.strip()
+        #         # 将类别名称添加到列表中
+        #         class_names.append(category_name)
+        # predicted_indices = torch.argmax(target, dim=1)
+        # predicted_class_names = [class_names[idx] for idx in predicted_indices]
+        # print(predicted_class_names)
+        # torchvision.utils.save_image(
+        #     input,
+        #     os.path.join(output_dir, "train-batch-%d.jpg" % batch_idx),
+        #     padding=0,
+        #     normalize=True,
+        # )
         if not args.distributed:
             losses_m.update(loss.item(), input.size(0))
 
@@ -1563,9 +1582,9 @@ def train_one_epoch(
                     )
 
         if (
-            saver is not None
-            and args.recovery_interval
-            and (last_batch or (batch_idx + 1) % args.recovery_interval == 0)
+                saver is not None
+                and args.recovery_interval
+                and (last_batch or (batch_idx + 1) % args.recovery_interval == 0)
         ):
             saver.save_recovery(epoch, batch_idx=batch_idx)
 
@@ -1606,15 +1625,36 @@ def validate(model, loader, loss_fn, args, amp_autocast=suppress, log_suffix="")
                 output = model(input)
             if isinstance(output, (tuple, list)):
                 output = output[0]
+            # 定义一个空列表来存储类别名称
+            class_names = []
+            # 打开文件，并逐行读取类别名称
+            with open('dataset/cifar-100/labels.txt', 'r') as file:
+                for line in file:
+                    # 移除每行末尾的换行符，并去除可能的空白字符
+                    category_name = line.strip()
+                    # 将类别名称添加到列表中
+                    class_names.append(category_name)
+            # print('target:', target)
+            # predicted_indices = torch.argmax(target, dim=1)
+            # predicted_class_names = [class_names[idx] for idx in predicted_indices]
+            # print(predicted_class_names)
+            # output_dir = "output"
+            # torchvision.utils.save_image(
+            #     input,
+            #     os.path.join(output_dir, "test-batch-%d.jpg" % batch_idx),
+            #     padding=0,
+            #     normalize=True,
+            # )
 
             # augmentation reduction
             reduce_factor = args.tta
             if reduce_factor > 1:
                 output = output.unfold(0, reduce_factor, reduce_factor).mean(dim=2)
-                target = target[0 : target.size(0) : reduce_factor]
+                target = target[0: target.size(0): reduce_factor]
 
             loss = loss_fn(output, target)
             acc1, acc5 = accuracy(output, target, topk=(1, 5))
+            # print("Batch_id:{} Acc1:{} Acc5:{}".format(batch_idx, acc1, acc5))
 
             if args.distributed:
                 reduced_loss = reduce_tensor(loss.data, args.world_size)
@@ -1632,7 +1672,7 @@ def validate(model, loader, loss_fn, args, amp_autocast=suppress, log_suffix="")
             batch_time_m.update(time.time() - end)
             end = time.time()
             if args.local_rank == 0 and (
-                last_batch or batch_idx % args.log_interval == 0
+                    last_batch or batch_idx % args.log_interval == 0
             ):
                 log_name = "Test" + log_suffix
                 _logger.info(
